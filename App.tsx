@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import * as XLSX from 'xlsx';
@@ -6,7 +5,7 @@ import type { RowData } from './types';
 import { UploadIcon, SparklesIcon, DownloadIcon, CheckCircleIcon, XCircleIcon } from './components/icons';
 
 const ProgressBar: React.FC<{ progress: number }> = ({ progress }) => (
-    <div className="w-full bg-slate-700 rounded-full h-2.5">
+    <div className="w-full bg-gray-800 rounded-full h-2.5">
         <div
             className="bg-purple-600 h-2.5 rounded-full transition-all duration-300 ease-linear"
             style={{ width: `${progress}%` }}
@@ -84,16 +83,16 @@ const SpellingResultsTable: React.FC<{ originalData: RowData[], correctedData: R
     return (
         <div className="mt-8 w-full overflow-x-auto">
             {changedRows.length > 0 ? (
-                <table className="min-w-full bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
-                    <thead className="bg-slate-700/50">
+                <table className="min-w-full bg-gray-950 border border-gray-800 rounded-lg shadow-lg">
+                    <thead className="bg-gray-900">
                         <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Original Story</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Corrected Story</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Original Sub-Story</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Corrected Sub-Story</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Original Story</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Corrected Story</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Original Sub-Story</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Corrected Sub-Story</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-700">
+                    <tbody className="divide-y divide-gray-800">
                         {changedRows.map(originalRow => {
                             const correctedRow = findCorrectedRow(originalRow.id);
                             if (!correctedRow) return null;
@@ -104,17 +103,17 @@ const SpellingResultsTable: React.FC<{ originalData: RowData[], correctedData: R
                             const correctedSubStory = correctedRow['sub-story'] || '';
 
                             return (
-                                <tr key={originalRow.id} className="hover:bg-slate-700/40 transition-colors duration-200">
-                                    <td className="px-4 py-3 border-b border-slate-700 text-slate-400 align-top">
+                                <tr key={originalRow.id} className="hover:bg-gray-900 transition-colors duration-200">
+                                    <td className="px-4 py-3 border-b border-gray-800 text-gray-500 align-top">
                                         <DiffHighlight original={originalStory} corrected={correctedStory} mode="original" />
                                     </td>
-                                    <td className="px-4 py-3 border-b border-slate-700 text-slate-300 align-top">
+                                    <td className="px-4 py-3 border-b border-gray-800 text-slate-200 align-top">
                                         <DiffHighlight original={originalStory} corrected={correctedStory} mode="corrected" />
                                     </td>
-                                    <td className="px-4 py-3 border-b border-slate-700 text-slate-400 align-top">
+                                    <td className="px-4 py-3 border-b border-gray-800 text-gray-500 align-top">
                                         <DiffHighlight original={originalSubStory} corrected={correctedSubStory} mode="original" />
                                     </td>
-                                    <td className="px-4 py-3 border-b border-slate-700 text-slate-300 align-top">
+                                    <td className="px-4 py-3 border-b border-gray-800 text-slate-200 align-top">
                                         <DiffHighlight original={originalSubStory} corrected={correctedSubStory} mode="corrected" />
                                     </td>
                                 </tr>
@@ -123,84 +122,13 @@ const SpellingResultsTable: React.FC<{ originalData: RowData[], correctedData: R
                     </tbody>
                 </table>
             ) : (
-                <div className="text-center p-8 bg-slate-800 border border-slate-700 rounded-lg">
-                    <p className="text-slate-300">No spelling corrections were found in the uploaded file.</p>
+                <div className="text-center p-8 bg-gray-950 border border-gray-800 rounded-lg">
+                    <p className="text-slate-400">No spelling corrections were found in the uploaded file.</p>
                 </div>
             )}
         </div>
     );
 };
-
-const GroundingResultsTable: React.FC<{ originalData: RowData[], groundingResults: any[], sources: any[] }> = ({ originalData, groundingResults, sources }) => {
-    const findResultRow = (id: number) => groundingResults.find(row => row.id === id);
-
-    return (
-        <div className="mt-8 w-full">
-            <div className="overflow-x-auto">
-                <table className="min-w-full bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
-                    <thead className="bg-slate-700/50">
-                        <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider w-1/4">Original Story</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider w-1/4">Analysis</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider w-1/4">Original Sub-Story</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider w-1/4">Analysis</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-700">
-                        {originalData.map(originalRow => {
-                            const resultRow = findResultRow(originalRow.id);
-                            if (!resultRow) return null;
-
-                            return (
-                                <tr key={originalRow.id} className="hover:bg-slate-700/40 transition-colors duration-200">
-                                    <td className="px-4 py-3 border-b border-slate-700 text-slate-400 align-top">{originalRow['story']}</td>
-                                    <td className="px-4 py-3 border-b border-slate-700 text-slate-300 align-top">{resultRow['story_analysis']}</td>
-                                    <td className="px-4 py-3 border-b border-slate-700 text-slate-400 align-top">{originalRow['sub-story']}</td>
-                                    <td className="px-4 py-3 border-b border-slate-700 text-slate-300 align-top">{resultRow['substory_analysis']}</td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
-            {sources.length > 0 && (
-                <div className="mt-6 p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
-                    <h3 className="text-lg font-semibold text-slate-300 mb-2">Sources</h3>
-                    <ul className="list-disc list-inside space-y-1 columns-1 sm:columns-2">
-                        {sources.map((source, index) => (
-                            source.web && <li key={index} className="text-sm text-cyan-400 truncate">
-                                <a href={source.web.uri} target="_blank" rel="noopener noreferrer" className="hover:underline" title={source.web.title}>
-                                    {source.web.title || source.web.uri}
-                                </a>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
-        </div>
-    );
-};
-
-const ToggleSwitch: React.FC<{ checked: boolean, onChange: (checked: boolean) => void, id: string }> = ({ checked, onChange, id }) => (
-    <button
-        type="button"
-        id={id}
-        className={`${
-            checked ? 'bg-purple-600' : 'bg-slate-600'
-        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900`}
-        role="switch"
-        aria-checked={checked}
-        onClick={() => onChange(!checked)}
-    >
-        <span
-            aria-hidden="true"
-            className={`${
-                checked ? 'translate-x-5' : 'translate-x-0'
-            } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-        />
-    </button>
-);
-
 
 const Spinner: React.FC = () => (
     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -212,9 +140,6 @@ export default function App() {
     const [fileName, setFileName] = useState<string>('');
     const [originalData, setOriginalData] = useState<RowData[]>([]);
     const [correctedData, setCorrectedData] = useState<RowData[]>([]);
-    const [groundingResults, setGroundingResults] = useState<any[]>([]);
-    const [sources, setSources] = useState<any[]>([]);
-    const [isGroundingEnabled, setIsGroundingEnabled] = useState<boolean>(false);
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [progressMessage, setProgressMessage] = useState<string>('');
@@ -234,9 +159,7 @@ export default function App() {
             setError('');
             setCorrectedData([]);
             setOriginalData([]);
-            setGroundingResults([]);
-            setSources([]);
-            setProgressMessage('File ready. Click "Analyze" to process.');
+            setProgressMessage('File ready. Click "Correct Spelling" to process.');
 
             const reader = new FileReader();
             reader.onload = (event) => {
@@ -283,13 +206,7 @@ export default function App() {
         setError('');
         setProgressMessage('Initializing analysis...');
         setProcessingProgress(0);
-        
-        if (isGroundingEnabled) {
-            setCorrectedData([]);
-        } else {
-            setGroundingResults([]);
-            setSources([]);
-        }
+        setCorrectedData([]);
 
         try {
             setProgressMessage('Identifying unique rows...');
@@ -323,7 +240,6 @@ export default function App() {
             const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
             let cumulativeResults: any[] = [];
-            let cumulativeSources: any[] = [];
 
             for (let i = 0; i < dataToAnalyze.length; i += CHUNK_SIZE) {
                 const chunk = dataToAnalyze.slice(i, i + CHUNK_SIZE);
@@ -331,85 +247,38 @@ export default function App() {
                 setProcessingProgress(progress);
                 setProgressMessage(`Processing unique rows ${i + 1} to ${Math.min(i + CHUNK_SIZE, dataToAnalyze.length)} of ${dataToAnalyze.length}...`);
 
-                if (isGroundingEnabled) {
-                    const prompt = `
-                      You are an expert fact-checker and analyst.
-                      For each object in the following JSON array, analyze the 'story' and 'sub-story' fields.
-                      Your analysis should:
-                      1. Verify the factual accuracy of any news, events, or claims.
-                      2. Validate any mentioned locations.
-                      3. Identify if any critical information is missing.
-                      4. Briefly summarize your findings for each field.
-                      
-                      IMPORTANT RULES:
-                      1. You MUST return a single, valid JSON array of objects.
-                      2. Each object in the output MUST have the same 'id' as the corresponding input object.
-                      3. Each output object must contain 'story_analysis' and 'substory_analysis' fields with your findings.
-                      4. If a field is empty or contains no verifiable information, state that.
-                      5. Keep your analysis concise.
-                      6. Do not wrap the final JSON in markdown backticks or any other formatting.
-
-                      Input Data:
-                      ${JSON.stringify(chunk)}
-                    `;
-
-                    const response = await ai.models.generateContent({
-                        model: "gemini-2.5-flash",
-                        contents: prompt,
-                        config: {
-                            tools: [{ googleSearch: {} }],
-                        },
-                    });
+                const prompt = `
+                    You are an AI proofreader with a single, precise task: correct spelling mistakes in the 'story' and 'sub-story' fields of the provided JSON array. Follow these rules strictly.
                     
-                    const resultText = response.text;
-                    if (!resultText) {
-                        throw new Error(`Model returned an empty response for the chunk starting at row ${i + 1}. The response might have been blocked.`);
-                    }
+                    **CRITICAL RULES:**
+                    1.  **SPELLING ONLY:** Correct only obvious spelling errors.
+                    2.  **NO GRAMMAR/PUNCTUATION:** Do NOT change grammar. Do NOT add, remove, or alter punctuation. Specifically, DO NOT add apostrophes. For example, "SINHAS" should remain "SINHAS", not "SINHA'S". "BJP S" should remain "BJP S", not "BJP'S".
+                    3.  **PRESERVE ALL CONTENT:** Do not change names, numbers, acronyms, or the meaning of the text. Do not add or remove words. For example, do not change 'ADIMINISTRATION' to 'ADITI MISHRA'. Correct it to 'ADMINISTRATION' if that's the clear intent.
+                    4.  **HANDLE PROPER NOUNS CAREFULLY:** Correct obvious misspellings of proper nouns. For example, 'UTTARAKHANDA' should be corrected to 'UTTARAKHAND'.
+                    5.  **EXACT JSON STRUCTURE:** The output MUST be a single, valid, minified JSON array. It must have the exact same number of objects and 'id's as the input. Do not wrap the JSON in markdown.
+                    6.  **IF NO ERRORS, NO CHANGE:** If a field has no spelling errors, return it exactly as it is.
 
-                    const resultChunk = JSON.parse(resultText.trim());
-                    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-                    
-                    if (Array.isArray(resultChunk)) {
-                        cumulativeResults.push(...resultChunk);
-                        cumulativeSources.push(...groundingChunks);
-                    } else {
-                         throw new Error(`Model returned invalid data for a chunk starting at row ${i+1}.`);
-                    }
+                    Input Data:
+                    ${JSON.stringify(chunk)}
+                `;
 
+                const response = await ai.models.generateContent({
+                    model: "gemini-flash-lite-latest",
+                    contents: prompt,
+                });
+
+                const responseText = response.text;
+                if (!responseText) {
+                    throw new Error(`Model returned an empty response for the chunk starting at row ${i + 1}. The response might have been blocked.`);
+                }
+
+                const cleanedResponse = responseText.replace(/```json|```/g, '').trim();
+                const resultChunk = JSON.parse(cleanedResponse);
+
+                 if (Array.isArray(resultChunk)) {
+                    cumulativeResults.push(...resultChunk);
                 } else {
-                    const prompt = `
-                        You are an AI proofreader with a single, precise task: correct spelling mistakes in the 'story' and 'sub-story' fields of the provided JSON array. Follow these rules strictly.
-                        
-                        **CRITICAL RULES:**
-                        1.  **SPELLING ONLY:** Correct only obvious spelling errors.
-                        2.  **NO GRAMMAR/PUNCTUATION:** Do NOT change grammar. Do NOT add, remove, or alter punctuation. Specifically, DO NOT add apostrophes. For example, "SINHAS" should remain "SINHAS", not "SINHA'S". "BJP S" should remain "BJP S", not "BJP'S".
-                        3.  **PRESERVE ALL CONTENT:** Do not change names, numbers, acronyms, or the meaning of the text. Do not add or remove words. For example, do not change 'ADIMINISTRATION' to 'ADITI MISHRA'. Correct it to 'ADMINISTRATION' if that's the clear intent.
-                        4.  **HANDLE PROPER NOUNS CAREFULLY:** Correct obvious misspellings of proper nouns. For example, 'UTTARAKHANDA' should be corrected to 'UTTARAKHAND'.
-                        5.  **EXACT JSON STRUCTURE:** The output MUST be a single, valid, minified JSON array. It must have the exact same number of objects and 'id's as the input. Do not wrap the JSON in markdown.
-                        6.  **IF NO ERRORS, NO CHANGE:** If a field has no spelling errors, return it exactly as it is.
-
-                        Input Data:
-                        ${JSON.stringify(chunk)}
-                    `;
-
-                    const response = await ai.models.generateContent({
-                        model: "gemini-flash-lite-latest",
-                        contents: prompt,
-                    });
-
-                    const responseText = response.text;
-                    if (!responseText) {
-                        throw new Error(`Model returned an empty response for the chunk starting at row ${i + 1}. The response might have been blocked.`);
-                    }
-
-                    const cleanedResponse = responseText.replace(/```json|```/g, '').trim();
-                    const resultChunk = JSON.parse(cleanedResponse);
-
-                     if (Array.isArray(resultChunk)) {
-                        cumulativeResults.push(...resultChunk);
-                    } else {
-                         throw new Error(`Model returned invalid data for a chunk starting at row ${i+1}.`);
-                    }
+                     throw new Error(`Model returned invalid data for a chunk starting at row ${i+1}.`);
                 }
                 
                 if (i + CHUNK_SIZE < dataToAnalyze.length) {
@@ -429,30 +298,17 @@ export default function App() {
     
                 if (originalIds && result) {
                     originalIds.forEach(originalId => {
-                        if (isGroundingEnabled) {
-                            expandedResults.push({
-                                id: originalId,
-                                story_analysis: result.story_analysis,
-                                substory_analysis: result.substory_analysis,
-                            });
-                        } else {
-                            expandedResults.push({
-                                id: originalId,
-                                story: result.story,
-                                'sub-story': result['sub-story'],
-                            });
-                        }
+                        expandedResults.push({
+                            id: originalId,
+                            story: result.story,
+                            'sub-story': result['sub-story'],
+                        });
                     });
                 }
             });
 
-            if (isGroundingEnabled) {
-                setGroundingResults(expandedResults);
-                setSources(cumulativeSources);
-            } else {
-                setCorrectedData(expandedResults);
-            }
-            setProgressMessage(`Analysis complete. ${originalData.length} rows processed based on ${dataToAnalyze.length} unique entries.`);
+            setCorrectedData(expandedResults);
+            setProgressMessage(`Correction complete. ${originalData.length} rows processed based on ${dataToAnalyze.length} unique entries.`);
 
         } catch (err: any) {
             console.error(err);
@@ -462,40 +318,10 @@ export default function App() {
         } finally {
             setIsProcessing(false);
         }
-    }, [originalData, isGroundingEnabled]);
+    }, [originalData]);
 
     const handleDownload = () => {
-        if (isGroundingEnabled && groundingResults.length > 0) {
-            const finalData = originalData.map(originalRow => {
-                const resultRow = groundingResults.find(gr => gr.id === originalRow.id);
-                if (resultRow) {
-                    return {
-                        ...originalRow,
-                        'story_analysis': resultRow['story_analysis'],
-                        'substory_analysis': resultRow['substory_analysis']
-                    };
-                }
-                return originalRow;
-            });
-            const dataToExport = finalData.map(({ id, ...rest }) => rest);
-            const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-
-            const sourcesToExport = sources
-                .filter(source => source.web)
-                .map(source => ({
-                    title: source.web.title,
-                    url: source.web.uri
-                }));
-            const sourcesWorksheet = XLSX.utils.json_to_sheet(sourcesToExport);
-
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Fact-Checked_Data");
-            if (sourcesToExport.length > 0) {
-                XLSX.utils.book_append_sheet(workbook, sourcesWorksheet, "Sources");
-            }
-            XLSX.writeFile(workbook, "fact_checked_data.xlsx");
-
-        } else if (!isGroundingEnabled && correctedData.length > 0) {
+        if (correctedData.length > 0) {
             const finalData = originalData.map(originalRow => {
                 const correctedRow = correctedData.find(cr => cr.id === originalRow.id);
                 const newRow: { [key: string]: any } = {};
@@ -519,21 +345,21 @@ export default function App() {
         }
     };
 
-    const hasResults = correctedData.length > 0 || groundingResults.length > 0;
+    const hasResults = correctedData.length > 0;
 
     return (
-        <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center p-4 sm:p-6 md:p-8 font-sans">
+        <div className="min-h-screen bg-black text-slate-200 flex flex-col items-center p-4 sm:p-6 md:p-8 font-sans">
             <div className="w-full max-w-7xl mx-auto">
                 <header className="text-center mb-8">
                     <h1 className="text-4xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">
-                        Excel Data Enhancer
+                        Excel Spelling Corrector
                     </h1>
-                    <p className="mt-4 text-lg text-slate-400 max-w-3xl mx-auto">
-                        Correct spelling mistakes or use Google Search to fact-check your 'story' and 'sub-story' columns for accuracy.
+                    <p className="mt-4 text-lg text-slate-500 max-w-3xl mx-auto">
+                        Upload your Excel file to automatically correct spelling mistakes in the 'story' and 'sub-story' columns.
                     </p>
                 </header>
 
-                <main className="bg-slate-800/50 border border-slate-700 rounded-xl shadow-2xl p-6 md:p-8 flex flex-col items-center gap-6">
+                <main className="bg-black border border-gray-800 rounded-xl shadow-2xl p-6 md:p-8 flex flex-col items-center gap-6">
                     <div className="w-full max-w-2xl flex flex-col gap-4 items-center">
                         <div className="w-full flex flex-col sm:flex-row gap-4">
                             <input
@@ -545,7 +371,7 @@ export default function App() {
                             />
                             <button
                                 onClick={triggerFileSelect}
-                                className="w-full sm:w-auto flex-grow flex items-center justify-center gap-2 px-6 py-3 bg-slate-700 text-slate-200 rounded-lg hover:bg-slate-600 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                                className="w-full sm:w-auto flex-grow flex items-center justify-center gap-2 px-6 py-3 bg-gray-800 text-slate-300 rounded-lg hover:bg-gray-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black"
                             >
                                 <UploadIcon className="w-5 h-5" />
                                 {fileName ? 'Change File' : 'Select Excel File'}
@@ -554,15 +380,11 @@ export default function App() {
                             <button
                                 onClick={handleProcess}
                                 disabled={!file || isProcessing || originalData.length === 0}
-                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 transition-all duration-300 disabled:bg-slate-500 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 transition-all duration-300 disabled:bg-gray-600 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black"
                             >
                                 {isProcessing ? <Spinner/> : <SparklesIcon className="w-5 h-5" />}
-                                {isProcessing ? 'Analyzing...' : 'Analyze'}
+                                {isProcessing ? 'Correcting...' : 'Correct Spelling'}
                             </button>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <ToggleSwitch id="grounding-toggle" checked={isGroundingEnabled} onChange={setIsGroundingEnabled} />
-                            <label htmlFor="grounding-toggle" className="text-slate-300 cursor-pointer">Fact-check with Google Search</label>
                         </div>
                     </div>
 
@@ -590,15 +412,12 @@ export default function App() {
                             </div>
                             <button
                                 onClick={handleDownload}
-                                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-black"
                             >
                                 <DownloadIcon className="w-5 h-5" />
-                                {isGroundingEnabled ? 'Download Analysis Excel' : 'Download Corrected Excel'}
+                                Download Corrected Excel
                             </button>
-                            {isGroundingEnabled ? 
-                                <GroundingResultsTable originalData={originalData} groundingResults={groundingResults} sources={sources} /> :
-                                <SpellingResultsTable originalData={originalData} correctedData={correctedData} />
-                            }
+                            <SpellingResultsTable originalData={originalData} correctedData={correctedData} />
                         </div>
                     )}
                 </main>

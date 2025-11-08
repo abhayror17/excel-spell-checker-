@@ -1,5 +1,5 @@
 {
   "name": "Excel Spelling Corrector",
-  "description": "An application to analyze and correct spelling mistakes in 'story' and 'sub-story' columns of an uploaded Excel file using the Gemini API for fast, low-latency results.",
+  "description": "An application to correct spelling mistakes in 'story' and 'sub-story' columns of an uploaded Excel file using the Gemini API for fast, low-latency results.",
   "requestFramePermissions": []
 }
