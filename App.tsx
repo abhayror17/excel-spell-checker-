@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import * as XLSX from 'xlsx';
@@ -5,7 +6,7 @@ import type { RowData } from './types';
 import { UploadIcon, SparklesIcon, DownloadIcon, CheckCircleIcon, XCircleIcon } from './components/icons';
 
 const ProgressBar: React.FC<{ progress: number }> = ({ progress }) => (
-    <div className="w-full bg-gray-800 rounded-full h-2.5">
+    <div className="w-full bg-slate-700 rounded-full h-2.5">
         <div
             className="bg-purple-600 h-2.5 rounded-full transition-all duration-300 ease-linear"
             style={{ width: `${progress}%` }}
@@ -83,16 +84,16 @@ const SpellingResultsTable: React.FC<{ originalData: RowData[], correctedData: R
     return (
         <div className="mt-8 w-full overflow-x-auto">
             {changedRows.length > 0 ? (
-                <table className="min-w-full bg-gray-950 border border-gray-800 rounded-lg shadow-lg">
-                    <thead className="bg-gray-900">
+                <table className="min-w-full bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
+                    <thead className="bg-slate-700/50">
                         <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Original Story</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Corrected Story</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Original Sub-Story</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Corrected Sub-Story</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Original Story</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Corrected Story</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Original Sub-Story</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Corrected Sub-Story</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-800">
+                    <tbody className="divide-y divide-slate-700">
                         {changedRows.map(originalRow => {
                             const correctedRow = findCorrectedRow(originalRow.id);
                             if (!correctedRow) return null;
@@ -103,17 +104,17 @@ const SpellingResultsTable: React.FC<{ originalData: RowData[], correctedData: R
                             const correctedSubStory = correctedRow['sub-story'] || '';
 
                             return (
-                                <tr key={originalRow.id} className="hover:bg-gray-900 transition-colors duration-200">
-                                    <td className="px-4 py-3 border-b border-gray-800 text-gray-500 align-top">
+                                <tr key={originalRow.id} className="hover:bg-slate-700/40 transition-colors duration-200">
+                                    <td className="px-4 py-3 border-b border-slate-700 text-slate-400 align-top">
                                         <DiffHighlight original={originalStory} corrected={correctedStory} mode="original" />
                                     </td>
-                                    <td className="px-4 py-3 border-b border-gray-800 text-slate-200 align-top">
+                                    <td className="px-4 py-3 border-b border-slate-700 text-slate-300 align-top">
                                         <DiffHighlight original={originalStory} corrected={correctedStory} mode="corrected" />
                                     </td>
-                                    <td className="px-4 py-3 border-b border-gray-800 text-gray-500 align-top">
+                                    <td className="px-4 py-3 border-b border-slate-700 text-slate-400 align-top">
                                         <DiffHighlight original={originalSubStory} corrected={correctedSubStory} mode="original" />
                                     </td>
-                                    <td className="px-4 py-3 border-b border-gray-800 text-slate-200 align-top">
+                                    <td className="px-4 py-3 border-b border-slate-700 text-slate-300 align-top">
                                         <DiffHighlight original={originalSubStory} corrected={correctedSubStory} mode="corrected" />
                                     </td>
                                 </tr>
@@ -122,8 +123,8 @@ const SpellingResultsTable: React.FC<{ originalData: RowData[], correctedData: R
                     </tbody>
                 </table>
             ) : (
-                <div className="text-center p-8 bg-gray-950 border border-gray-800 rounded-lg">
-                    <p className="text-slate-400">No spelling corrections were found in the uploaded file.</p>
+                <div className="text-center p-8 bg-slate-800 border border-slate-700 rounded-lg">
+                    <p className="text-slate-300">No spelling corrections were found in the uploaded file.</p>
                 </div>
             )}
         </div>
@@ -348,18 +349,18 @@ export default function App() {
     const hasResults = correctedData.length > 0;
 
     return (
-        <div className="min-h-screen bg-black text-slate-200 flex flex-col items-center p-4 sm:p-6 md:p-8 font-sans">
+        <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center p-4 sm:p-6 md:p-8 font-sans">
             <div className="w-full max-w-7xl mx-auto">
                 <header className="text-center mb-8">
                     <h1 className="text-4xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">
                         Excel Spelling Corrector
                     </h1>
-                    <p className="mt-4 text-lg text-slate-500 max-w-3xl mx-auto">
+                    <p className="mt-4 text-lg text-slate-400 max-w-3xl mx-auto">
                         Upload your Excel file to automatically correct spelling mistakes in the 'story' and 'sub-story' columns.
                     </p>
                 </header>
 
-                <main className="bg-black border border-gray-800 rounded-xl shadow-2xl p-6 md:p-8 flex flex-col items-center gap-6">
+                <main className="bg-slate-800/50 border border-slate-700 rounded-xl shadow-2xl p-6 md:p-8 flex flex-col items-center gap-6">
                     <div className="w-full max-w-2xl flex flex-col gap-4 items-center">
                         <div className="w-full flex flex-col sm:flex-row gap-4">
                             <input
@@ -371,7 +372,7 @@ export default function App() {
                             />
                             <button
                                 onClick={triggerFileSelect}
-                                className="w-full sm:w-auto flex-grow flex items-center justify-center gap-2 px-6 py-3 bg-gray-800 text-slate-300 rounded-lg hover:bg-gray-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black"
+                                className="w-full sm:w-auto flex-grow flex items-center justify-center gap-2 px-6 py-3 bg-slate-700 text-slate-200 rounded-lg hover:bg-slate-600 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900"
                             >
                                 <UploadIcon className="w-5 h-5" />
                                 {fileName ? 'Change File' : 'Select Excel File'}
@@ -380,7 +381,7 @@ export default function App() {
                             <button
                                 onClick={handleProcess}
                                 disabled={!file || isProcessing || originalData.length === 0}
-                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 transition-all duration-300 disabled:bg-gray-600 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black"
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 transition-all duration-300 disabled:bg-slate-500 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900"
                             >
                                 {isProcessing ? <Spinner/> : <SparklesIcon className="w-5 h-5" />}
                                 {isProcessing ? 'Correcting...' : 'Correct Spelling'}
@@ -412,7 +413,7 @@ export default function App() {
                             </div>
                             <button
                                 onClick={handleDownload}
-                                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-black"
+                                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-slate-900"
                             >
                                 <DownloadIcon className="w-5 h-5" />
                                 Download Corrected Excel
