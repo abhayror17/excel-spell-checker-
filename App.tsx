@@ -14,7 +14,6 @@ const ProgressBar: React.FC<{ progress: number }> = ({ progress }) => (
     </div>
 );
 
-
 const DiffHighlight: React.FC<{ original: string; corrected: string; mode: 'original' | 'corrected' }> = ({ original, corrected, mode }) => {
     const safeOriginal = original || '';
     const safeCorrected = corrected || '';
@@ -26,7 +25,6 @@ const DiffHighlight: React.FC<{ original: string; corrected: string; mode: 'orig
     const originalTokens = safeOriginal.split(/(\s+)/);
     const correctedTokens = safeCorrected.split(/(\s+)/);
 
-    // If token counts differ, use a more robust set-based comparison for highlighting.
     if (originalTokens.length !== correctedTokens.length) {
         const correctedWords = new Set(correctedTokens.filter(t => t.trim() !== ''));
         const originalWords = new Set(originalTokens.filter(t => t.trim() !== ''));
@@ -40,7 +38,6 @@ const DiffHighlight: React.FC<{ original: string; corrected: string; mode: 'orig
         return (
             <>
                 {tokensToRender.map((token, index) => {
-                    // Highlight if it's a non-whitespace word that doesn't exist in the other set.
                     if (token.trim() !== '' && !wordsToCompare.has(token)) {
                         return <span key={`${index}-${token}`} className={highlightClass}>{token}</span>;
                     }
@@ -50,7 +47,6 @@ const DiffHighlight: React.FC<{ original: string; corrected: string; mode: 'orig
         );
     }
     
-    // Original logic for when token counts are the same.
     const displayTokens = mode === 'original' ? originalTokens : correctedTokens;
 
     return (
@@ -68,7 +64,6 @@ const DiffHighlight: React.FC<{ original: string; corrected: string; mode: 'orig
         </>
     );
 };
-
 
 const SpellingResultsTable: React.FC<{ originalData: RowData[], correctedData: RowData[] }> = ({ originalData, correctedData }) => {
     const findCorrectedRow = (id: number) => correctedData.find(row => row.id === id);
@@ -135,6 +130,39 @@ const Spinner: React.FC = () => (
     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
 );
 
+/**
+ * Utility function to handle API calls with exponential backoff retries.
+ */
+async function withRetry<T>(
+    fn: () => Promise<T>, 
+    maxRetries = 4, 
+    baseDelay = 2000, 
+    onRetry?: (attempt: number, error: any) => void
+): Promise<T> {
+    let lastError: any;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            return await fn();
+        } catch (err: any) {
+            lastError = err;
+            const errorStr = JSON.stringify(err).toLowerCase();
+            const isRetryable = errorStr.includes('503') || 
+                               errorStr.includes('429') || 
+                               errorStr.includes('overloaded') || 
+                               errorStr.includes('rate limit');
+            
+            if (!isRetryable || attempt === maxRetries - 1) {
+                throw err;
+            }
+            
+            if (onRetry) onRetry(attempt + 1, err);
+            
+            const delay = baseDelay * Math.pow(2, attempt); // 2s, 4s, 8s...
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+    throw lastError;
+}
 
 export default function App() {
     const [file, setFile] = useState<File | null>(null);
@@ -180,7 +208,7 @@ export default function App() {
                     const processedData = jsonData.map(lowercaseHeaders);
 
                     if (!processedData[0]?.hasOwnProperty('story') || !processedData[0]?.hasOwnProperty('sub-story')) {
-                        setError("Excel sheet must contain 'story' and 'sub-story' columns.");
+                        setError("Excel sheet must contain 'story' and 'sub-story' columns (case-insensitive).");
                         setOriginalData([]);
                         return;
                     }
@@ -210,14 +238,14 @@ export default function App() {
         setCorrectedData([]);
 
         try {
-            setProgressMessage('Identifying unique rows...');
+            setProgressMessage('Deduplicating rows to optimize processing...');
             const uniqueDataMap = new Map<string, { id: number; story: string; 'sub-story': string }>();
             const uniqueKeyToOriginalIdsMap = new Map<string, number[]>();
             let uniqueIdCounter = 0;
 
             originalData.forEach(row => {
-                const story = row['story'] || "";
-                const subStory = row['sub-story'] || "";
+                const story = (row['story'] || "").toString();
+                const subStory = (row['sub-story'] || "").toString();
                 const key = `${story}|~|${subStory}`;
                 
                 if (!uniqueDataMap.has(key)) {
@@ -232,12 +260,13 @@ export default function App() {
             });
             
             const dataToAnalyze = Array.from(uniqueDataMap.values());
-            setProgressMessage(`Found ${dataToAnalyze.length} unique rows to process.`);
+            setProgressMessage(`Identified ${dataToAnalyze.length} unique items from ${originalData.length} total rows.`);
 
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
-            const CHUNK_SIZE = 20;
-            const DELAY_MS = 1500; // 1.5-second delay to stay safely within API rate limits.
+            // Reduced chunk size to prevent model overload
+            const CHUNK_SIZE = 10;
+            const DELAY_MS = 2000;
             const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
             let cumulativeResults: any[] = [];
@@ -246,41 +275,46 @@ export default function App() {
                 const chunk = dataToAnalyze.slice(i, i + CHUNK_SIZE);
                 const progress = (i / dataToAnalyze.length) * 100;
                 setProcessingProgress(progress);
+                
+                const processChunk = async () => {
+                    const prompt = `
+                        You are an AI proofreader. Correct ONLY obvious spelling mistakes in 'story' and 'sub-story' fields.
+                        
+                        RULES:
+                        1. SPELLING ONLY: Do not change grammar, punctuation, or formatting.
+                        2. NO APOstrophes: Do not add possessive apostrophes to capitalized names or acronyms (e.g. "BJP S" stays "BJP S").
+                        3. PRESERVE ALL: Do not remove or add words.
+                        4. JSON: Output ONLY a valid JSON array matching input length and IDs. No markdown.
+                        
+                        Input:
+                        ${JSON.stringify(chunk)}
+                    `;
+
+                    const response = await ai.models.generateContent({
+                        model: "gemini-3-flash-preview",
+                        contents: prompt,
+                    });
+
+                    const responseText = response.text;
+                    if (!responseText) throw new Error("Empty response");
+
+                    const cleanedResponse = responseText.replace(/```json|```/g, '').trim();
+                    const resultChunk = JSON.parse(cleanedResponse);
+                    
+                    if (!Array.isArray(resultChunk)) throw new Error("Invalid format");
+                    return resultChunk;
+                };
+
                 setProgressMessage(`Processing unique rows ${i + 1} to ${Math.min(i + CHUNK_SIZE, dataToAnalyze.length)} of ${dataToAnalyze.length}...`);
 
-                const prompt = `
-                    You are an AI proofreader with a single, precise task: correct spelling mistakes in the 'story' and 'sub-story' fields of the provided JSON array. Follow these rules strictly.
-                    
-                    **CRITICAL RULES:**
-                    1.  **SPELLING ONLY:** Correct only obvious spelling errors.
-                    2.  **NO GRAMMAR/PUNCTUATION:** Do NOT change grammar. Do NOT add, remove, or alter punctuation. Specifically, DO NOT add apostrophes. For example, "SINHAS" should remain "SINHAS", not "SINHA'S". "BJP S" should remain "BJP S", not "BJP'S".
-                    3.  **PRESERVE ALL CONTENT:** Do not change names, numbers, acronyms, or the meaning of the text. Do not add or remove words. For example, do not change 'ADIMINISTRATION' to 'ADITI MISHRA'. Correct it to 'ADMINISTRATION' if that's the clear intent.
-                    4.  **HANDLE PROPER NOUNS CAREFULLY:** Correct obvious misspellings of proper nouns. For example, 'UTTARAKHANDA' should be corrected to 'UTTARAKHAND'.
-                    5.  **EXACT JSON STRUCTURE:** The output MUST be a single, valid, minified JSON array. It must have the exact same number of objects and 'id's as the input. Do not wrap the JSON in markdown.
-                    6.  **IF NO ERRORS, NO CHANGE:** If a field has no spelling errors, return it exactly as it is.
+                const resultChunk = await withRetry(
+                    processChunk, 
+                    4, 
+                    2500, 
+                    (attempt) => setProgressMessage(`Model overloaded. Retrying chunk ${i+1} (Attempt ${attempt}/4)...`)
+                );
 
-                    Input Data:
-                    ${JSON.stringify(chunk)}
-                `;
-
-                const response = await ai.models.generateContent({
-                    model: "gemini-flash-lite-latest",
-                    contents: prompt,
-                });
-
-                const responseText = response.text;
-                if (!responseText) {
-                    throw new Error(`Model returned an empty response for the chunk starting at row ${i + 1}. The response might have been blocked.`);
-                }
-
-                const cleanedResponse = responseText.replace(/```json|```/g, '').trim();
-                const resultChunk = JSON.parse(cleanedResponse);
-
-                 if (Array.isArray(resultChunk)) {
-                    cumulativeResults.push(...resultChunk);
-                } else {
-                     throw new Error(`Model returned invalid data for a chunk starting at row ${i+1}.`);
-                }
+                cumulativeResults.push(...resultChunk);
                 
                 if (i + CHUNK_SIZE < dataToAnalyze.length) {
                     await delay(DELAY_MS);
@@ -309,11 +343,11 @@ export default function App() {
             });
 
             setCorrectedData(expandedResults);
-            setProgressMessage(`Correction complete. ${originalData.length} rows processed based on ${dataToAnalyze.length} unique entries.`);
+            setProgressMessage(`Success! ${originalData.length} rows corrected.`);
 
         } catch (err: any) {
             console.error(err);
-            setError(`An error occurred: ${err.message}. The model may have returned an invalid format. Please try again.`);
+            setError(`Error: ${err.message}. Try reducing the file size or processing again.`);
             setProgressMessage('');
             setProcessingProgress(0);
         } finally {
@@ -342,7 +376,7 @@ export default function App() {
             const worksheet = XLSX.utils.json_to_sheet(dataToExport);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Corrected_Data");
-            XLSX.writeFile(workbook, "corrected_spelling.xlsx");
+            XLSX.writeFile(workbook, `corrected_${fileName || 'spelling'}.xlsx`);
         }
     };
 
@@ -356,7 +390,7 @@ export default function App() {
                         Excel Spelling Corrector
                     </h1>
                     <p className="mt-4 text-lg text-slate-400 max-w-3xl mx-auto">
-                        Upload your Excel file to automatically correct spelling mistakes in the 'story' and 'sub-story' columns.
+                        Extracts and corrects spelling in 'story' and 'sub-story' columns. Enhanced with auto-retry for large files.
                     </p>
                 </header>
 
@@ -387,17 +421,18 @@ export default function App() {
                                 {isProcessing ? 'Correcting...' : 'Correct Spelling'}
                             </button>
                         </div>
+                        {fileName && <p className="text-sm text-slate-500">Selected: {fileName} ({originalData.length} rows)</p>}
                     </div>
 
-                    <div className="text-center h-12 w-full max-w-md flex flex-col justify-center items-center">
+                    <div className="text-center min-h-[4rem] w-full max-w-xl flex flex-col justify-center items-center">
                          {isProcessing ? (
                             <div className="w-full">
-                                <p className="text-cyan-400 mb-2">{progressMessage}</p>
+                                <p className="text-cyan-400 mb-2 font-medium">{progressMessage}</p>
                                 <ProgressBar progress={processingProgress} />
                             </div>
                         ) : error ? (
-                             <div className="flex items-center gap-2 text-red-400">
-                               <XCircleIcon className="w-5 h-5" /> <span>{error}</span>
+                             <div className="p-4 bg-red-900/20 border border-red-500/50 rounded-lg flex items-center gap-3 text-red-400">
+                               <XCircleIcon className="w-6 h-6 flex-shrink-0" /> <span className="text-sm">{error}</span>
                             </div>
                         ) : progressMessage && fileName && !hasResults ? (
                              <div className="flex items-center gap-2 text-green-400">
@@ -408,17 +443,20 @@ export default function App() {
                     
                     {hasResults && !isProcessing && (
                          <div className="w-full flex flex-col items-center gap-6">
-                             <div className="flex items-center gap-2 text-green-400">
-                               <CheckCircleIcon className="w-5 h-5" /> <span>{progressMessage}</span>
+                             <div className="flex items-center gap-2 text-green-400 font-semibold">
+                               <CheckCircleIcon className="w-6 h-6" /> <span>{progressMessage}</span>
                             </div>
                             <button
                                 onClick={handleDownload}
-                                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                                className="flex items-center gap-2 px-8 py-4 bg-green-600 text-white font-bold rounded-xl shadow-lg hover:bg-green-700 hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-slate-900"
                             >
-                                <DownloadIcon className="w-5 h-5" />
+                                <DownloadIcon className="w-6 h-6" />
                                 Download Corrected Excel
                             </button>
-                            <SpellingResultsTable originalData={originalData} correctedData={correctedData} />
+                            <div className="w-full">
+                                <h3 className="text-xl font-semibold mb-4 text-slate-300">Preview of Corrections:</h3>
+                                <SpellingResultsTable originalData={originalData} correctedData={correctedData} />
+                            </div>
                         </div>
                     )}
                 </main>
