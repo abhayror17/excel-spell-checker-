@@ -265,7 +265,7 @@ export default function App() {
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
             // Reduced chunk size to prevent model overload
-            const CHUNK_SIZE = 10;
+            const CHUNK_SIZE = 40;
             const DELAY_MS = 2000;
             const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
@@ -291,7 +291,7 @@ export default function App() {
                     `;
 
                     const response = await ai.models.generateContent({
-                        model: "gemini-3-flash-preview",
+                        model: "gemini-flash-lite-latest",
                         contents: prompt,
                     });
 
